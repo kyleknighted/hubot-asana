@@ -1,6 +1,12 @@
 # A way to add tasks to Asana
 #
-# todo: @name? <task directive>
+# todo: @name? <task directive> - public message starting with todo: will
+#                                 add task, optional @name to assign task
+# @bot todo users               - Message the bot directly to list all 
+#                                 available users in the workspace
+# 
+# Written by @idPro
+
 
 url  = 'https://app.asana.com/api/1.0'
 
@@ -66,3 +72,13 @@ module.exports = (robot) ->
           addTask msg, taskName, '/tasks', params, false
     else
       addTask msg, taskName, '/tasks', params, false
+
+# List all Users
+  robot.respond /(todo users)/i, (msg) ->
+    getRequest msg, "/workspaces/#{workspace}/users", (err, res, body) ->
+      response = JSON.parse body
+      userList = ""
+      for user in response.data
+        userList += "#{user.id} : #{user.name}\n"
+
+      msg.send userList
