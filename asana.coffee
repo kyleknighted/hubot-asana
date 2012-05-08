@@ -24,6 +24,24 @@ postRequest = (msg, path, params, callback) ->
     .post(stringParams) (err, res, body) ->
       callback(err, res, body)
 
+addTask = (msg, taskName, path, params, userAcct) ->
+  postRequest msg, '/tasks', params, (err, res, body) ->
+    response = JSON.parse body
+    if response.data.errors
+      msg.send response.data.errors
+    else
+      projectId = response.data.id
+      params = {data:{project: "#{project}"}}
+      postRequest msg, "/tasks/#{projectId}/addProject", params, (err, res, body) ->
+        response = JSON.parse body
+        if response.data
+          if userAcct
+            msg.send "Task Created : #{taskName} : Assigned to @#{userAcct}"
+          else
+            msg.send "Task Created : #{taskName}"
+        else
+          msg.send "Error creating task."
+
 module.exports = (robot) ->
 # Add a task
   robot.hear /^(todo|task):\s?(@\w+)?(.*)/i, (msg) ->
@@ -42,32 +60,9 @@ module.exports = (robot) ->
             assignedUser = user.id
         if assignedUser != ""
           params = {data:{name: "#{taskName}", workspace: "#{workspace}", assignee: "#{assignedUser}"}}
+          addTask msg, taskName, '/tasks', params, userAcct
         else
           msg.send "Unable to Assign User"
-        postRequest msg, '/tasks', params, (err, res, body) ->
-          response = JSON.parse body
-          if response.data.errors
-            msg.send response.data.errors
-          else
-            projectId = response.data.id
-            params = {data:{project: "#{project}"}}
-            postRequest msg, "/tasks/#{projectId}/addProject", params, (err, res, body) ->
-              response = JSON.parse body
-              if response.data
-                msg.send "Task Created : #{taskName}"
-              else
-                msg.send "Error creating task."
+          addTask msg, taskName, '/tasks', params, false
     else
-      postRequest msg, '/tasks', params, (err, res, body) ->
-        response = JSON.parse body
-        if response.data.errors
-          msg.send response.data.errors
-        else
-          projectId = response.data.id
-          params = {data:{project: "#{project}"}}
-          postRequest msg, "/tasks/#{projectId}/addProject", params, (err, res, body) ->
-            response = JSON.parse body
-            if response.data
-              msg.send "Task Created : #{taskName}"
-            else
-              msg.send "Error creating task."
+      addTask msg, taskName, '/tasks', params, false
